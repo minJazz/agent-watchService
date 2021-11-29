@@ -48,16 +48,23 @@ public class WatchService {
 
                     if ("ENTRY_MODIFY".equals(kind.toString())) {
                         if (context.getFileName().toString().indexOf("led.txt") != -1) {
-
+                            fileWatchService.flashLed();
                             InputInfo inputInfo = new InputInfo();
                             inputInfo.setPumpInfo(fileWatchService.textMapping());
 
                             //스위치가 눌려있다면 생산 실행 (배합물 통이 위치했을 경우를 말한다)
-                            if (switchStatus) {
-                                fileWatchService.executeManufacture(inputInfo);
-                            } else {
-                                fileWatchService.flashLed();
+                            while (!(fileWatchService.viewContactSwitch())) {
+                                Thread.sleep(700);
+                                System.out.println(switchStatus);
+                                if (switchStatus) {
+                                    break;
+                                } else {
+                                    fileWatchService.flashLed();
+                                    Thread.sleep(700);
+                                    continue;
+                                }
                             }
+                            fileWatchService.executeManufacture(inputInfo);
                         }
                     }
                 }
@@ -88,11 +95,14 @@ public class WatchService {
                 readText.append(line);
             }
 
+            String[] readTexts = readText.toString().split("[@]");
+
             pumpInfos = new ArrayList<>();
-            for (int i = 0; i < readText.length(); i++) {
+            for (int i = 0; i < readTexts.length; i++) {
                 Map<String, String> pumpInfo = new HashMap<String, String>();
-                pumpInfo.put(readText.toString().split("[@]")[i].split("[:]")[0],
-                        readText.toString().split("[@]")[i].split("[:]")[1]);
+                System.out.println(readTexts[i]);
+                pumpInfo.put(readTexts[i].split("[:]")[0],
+                        readTexts[i].split("[:]")[1]);
                 pumpInfos.add(pumpInfo);
             }
         } catch (Exception e) {
@@ -103,22 +113,30 @@ public class WatchService {
 
     public void executeManufacture (InputInfo inputInfo) throws Exception {
         // TODO : 생산실행
+        System.out.println(1);
         controlPump(inputInfo);
 
         Thread.sleep(10000);
 
+        System.out.println(2);
         int productWeight = measureProductWeight();
 
+        Thread.sleep(10000);
+
+        System.out.println(3);
         onLed();
+        Thread.sleep(10000);
 
         while (!(viewContactSwitch())) {
             Thread.sleep(1000);
         }
 
+        System.out.println(5);
+
         Map<String, Integer> product = new HashMap<String, Integer>();
         product.put("productWeight", productWeight);
-        sendProductInfo(product);
-
+        //sendProductInfo(product);
+        Thread.sleep(10000);
         offLed();
     }
 
@@ -132,7 +150,7 @@ public class WatchService {
                     PinState pinState = event.getState();
 
                     //스위치가 눌려 있는지? 눌렸다면 LOW 아닌경우 HIGH
-                    if ("LOW".equals(pinState)) {
+                    if ("LOW".equals(pinState.toString())) {
                         switchStatus = true;
                     } else {
                         switchStatus = false;
@@ -151,9 +169,12 @@ public class WatchService {
 
     public void flashLed () {
         // TODO : LED점멸
-        int flashCount = 0;
         try {
-            while (flashCount > 5) {
+            System.out.println("test");
+            for (int i = 0; i < 3;  i++) {
+                PIN_LED.low();
+                Thread.sleep(500);
+
                 PIN_LED.high();
                 Thread.sleep(1000);
 
