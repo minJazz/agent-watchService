@@ -1,3 +1,4 @@
+import com.pi4j.component.motor.impl.GpioStepperMotorComponent;
 import com.pi4j.io.gpio.*;
 import com.pi4j.io.gpio.event.GpioPinDigitalStateChangeEvent;
 import com.pi4j.io.gpio.event.GpioPinListenerDigital;
@@ -15,11 +16,32 @@ import java.util.Map;
 
 public class WatchService {
     private final static GpioController gpioController = GpioFactory.getInstance();
+
     private final static Pin GPIO_IN_PIN_00 = RaspiPin.GPIO_00;
     private final static Pin GPIO_IN_PIN_15 = RaspiPin.GPIO_15;
 
     private final static Pin GPIO_OUT_PIN_01 = RaspiPin.GPIO_01;
     private final static Pin GPIO_OUT_PIN_16 = RaspiPin.GPIO_16;
+    private final static Pin GPIO_OUT_PIN_22 = RaspiPin.GPIO_22;
+    private final static Pin GPIO_OUT_PIN_23 = RaspiPin.GPIO_23;
+    private final static Pin GPIO_OUT_PIN_24 = RaspiPin.GPIO_24;
+    private final static Pin GPIO_OUT_PIN_25 = RaspiPin.GPIO_25;
+    private final static Pin GPIO_OUT_PIN_26 = RaspiPin.GPIO_26;
+    private final static Pin GPIO_OUT_PIN_27 = RaspiPin.GPIO_27;
+    private final static Pin GPIO_OUT_PIN_28 = RaspiPin.GPIO_28;
+    private final static Pin GPIO_OUT_PIN_29 = RaspiPin.GPIO_29;
+
+
+    private final static GpioPinDigitalOutput[][] PINS_MOTOR = {
+            { gpioController.provisionDigitalOutputPin(GPIO_OUT_PIN_22, PinState.LOW),
+              gpioController.provisionDigitalOutputPin(GPIO_OUT_PIN_23, PinState.LOW),
+              gpioController.provisionDigitalOutputPin(GPIO_OUT_PIN_24, PinState.LOW),
+              gpioController.provisionDigitalOutputPin(GPIO_OUT_PIN_25, PinState.LOW)},
+
+            { gpioController.provisionDigitalOutputPin(GPIO_OUT_PIN_26, PinState.LOW),
+              gpioController.provisionDigitalOutputPin(GPIO_OUT_PIN_27, PinState.LOW),
+              gpioController.provisionDigitalOutputPin(GPIO_OUT_PIN_28, PinState.LOW),
+              gpioController.provisionDigitalOutputPin(GPIO_OUT_PIN_29, PinState.LOW)}};
 
     private final static GpioPinDigitalInput PIN_SWITCH = gpioController.provisionDigitalInputPin(GPIO_IN_PIN_00,
             PinPullResistance.PULL_DOWN);
@@ -163,8 +185,28 @@ public class WatchService {
         return switchStatus;
     }
 
-    public void controlPump (InputInfo inputInfo) {
+    public void controlPump (InputInfo inputInfo) throws Exception {
         // TODO : 원재료 펌프 제어
+        final GpioStepperMotorComponent firstMotor = new GpioStepperMotorComponent(PINS_MOTOR[0]);
+        final GpioStepperMotorComponent secondMotor = new GpioStepperMotorComponent(PINS_MOTOR[1]);
+
+        final byte[] single_step_sequence = new byte[4];
+        single_step_sequence[0] = (byte) 0b0001;
+        single_step_sequence[1] = (byte) 0b0010;
+        single_step_sequence[2] = (byte) 0b0100;
+        single_step_sequence[3] = (byte) 0b1000;
+
+        firstMotor.setStepInterval(2);
+        firstMotor.setStepSequence(single_step_sequence);
+        secondMotor.setStepInterval(2);
+        secondMotor.setStepSequence(single_step_sequence);
+
+        firstMotor.step(2038);
+        Thread.sleep(2000);
+
+        secondMotor.step(2038);
+        Thread.sleep(2000);
+
     }
 
     public void flashLed () {
