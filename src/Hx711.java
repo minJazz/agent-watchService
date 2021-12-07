@@ -1,8 +1,6 @@
 import com.pi4j.io.gpio.*;
 
 public class Hx711 {
-
-
     private final GpioPinDigitalOutput pinSCK;
     private final GpioPinDigitalInput pinDT;
     private int gain;
@@ -30,22 +28,6 @@ public class Hx711 {
         pinSCK.setState(PinState.LOW);
     }
 
-    public static void main(String[] args) {
-        GpioController gpioController = GpioFactory.getInstance();
-
-        Hx711 hx = new Hx711(gpioController.provisionDigitalInputPin(RaspiPin.GPIO_15), gpioController.provisionDigitalOutputPin(RaspiPin.GPIO_16), 5000, 2.0, GainFactor.GAIN_128);
-        hx.measureAndSetTare();
-        while (true) {
-            try {
-                System.out.println("value : " + hx.measure());
-                Thread.sleep(1500);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-        }
-    }
-
     /**
      * 저울의 현재 부하를 측정합니다. (용기 오프셋은 차감됩니다)
      * 경고! 전에 용기 값을 설정했는지 확인하십시오. 그렇지 않으면 결과가 나옵니다.
@@ -54,9 +36,8 @@ public class Hx711 {
      * @소수점 없이 반올림된 그램(g) 단위의 하중을 반환합니다.
      */
     public long measure() {
-
         double measuredKilogram = ((readValue() - tareOffset) * 0.5 * loadCellMaxWeight) / ((ratedOutput / 1000) * 128 * 8388608);
-        double measuredGrams = measuredKilogram * 1000;
+        double measuredGrams = measuredKilogram * 1.0584;
         long roundedGrams = Math.round(measuredGrams);
 
         return roundedGrams;
@@ -69,7 +50,6 @@ public class Hx711 {
      * @return 로드셀 센서가 반환한 원시 디지털 값.
      */
     public long readValue() {
-
         pinSCK.setState(PinState.LOW);
         while (!isReadyForMeasurement()) {
             sleepSafe(1);
@@ -88,8 +68,6 @@ public class Hx711 {
         pinSCK.setState(PinState.HIGH);
         count = count ^ 0x800000;
         pinSCK.setState(PinState.LOW);
-
-        System.out.println("Read value from sensor: " + count);
 
         return count;
     }

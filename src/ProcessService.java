@@ -13,5 +13,5 @@ public interface ProcessService {
 
     public void controlLED(boolean status);
 
-    public int measureProductWeight();
+    public int measureProductWeight(Hx711 hx711) throws Exception;
 }

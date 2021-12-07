@@ -1,4 +1,5 @@
 import okhttp3.*;
+import org.codehaus.jackson.map.ObjectMapper;
 
 import java.io.FileReader;
 import java.util.Map;
@@ -22,19 +23,16 @@ public class ProcessMapperImple implements ProcessMapper {
 
     @Override
     public void sendProductInfo(Map<String, Integer> productInfo) {
-        // 상대 서버 측 IP
         String url = "http://" + getIp() + "/product";
-        StringBuffer body = new StringBuffer();
-        body.append("{")
-                .append("  \"productWeight\":" + productInfo.get("productWeight"))
-                .append("}");
 
-        OkHttpClient okHttpClient = new OkHttpClient();
         try {
-            //post 요청을 위한 RequestBody 생성
+            ObjectMapper objectMapper = new ObjectMapper();
+            String body = objectMapper.writeValueAsString(productInfo);
+
+            OkHttpClient okHttpClient = new OkHttpClient();
             RequestBody requestBody = RequestBody.create(
                     MediaType.parse("application/json; " +
-                            "charset=UTF-8"), body.toString());
+                            "charset=UTF-8"), body);
 
             Request.Builder builder = new Request.Builder()
                     .url(url)
@@ -48,8 +46,9 @@ public class ProcessMapperImple implements ProcessMapper {
 
             if (response.isSuccessful()) {
                 responseBody = response.body();
+
                 if (responseBody != null) {
-                    if (!(responseBody.string().contains("200")) && receiveCount < 3 ) {
+                    if (!(responseBody.string().contains("200")) && receiveCount < 3) {
                         response = okHttpClient.newCall(request).execute();
                     }
                     responseBody.close();
