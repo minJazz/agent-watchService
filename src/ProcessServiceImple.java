@@ -2,6 +2,7 @@ import com.pi4j.component.motor.impl.GpioStepperMotorComponent;
 import com.pi4j.io.gpio.*;
 import com.pi4j.io.gpio.event.GpioPinDigitalStateChangeEvent;
 import com.pi4j.io.gpio.event.GpioPinListenerDigital;
+import com.pi4j.io.gpio.impl.GpioControllerImpl;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -39,6 +40,8 @@ public class ProcessServiceImple implements ProcessService {
 
     private final static GpioPinDigitalOutput PIN_LED = gpioController.provisionDigitalOutputPin(RaspiPin.GPIO_01, PinState.LOW);
 
+    private final Hx711 hx711 = new Hx711(gpioController.provisionDigitalInputPin(RaspiPin.GPIO_15),
+            gpioController.provisionDigitalOutputPin(RaspiPin.GPIO_16), 5000, 1.0, GainFactor.GAIN_128);
     private static boolean contactSwitchStatus = false;
 
     public ProcessServiceImple(ProcessMapperImple processMapperImple) {
@@ -58,10 +61,6 @@ public class ProcessServiceImple implements ProcessService {
     }
 
     private ProcessMapperImple processMapperImple;
-
-    public ProcessMapperImple getProcessMapperImple() {
-        return processMapperImple;
-    }
 
     @Override
     public List<Map<String, String>> textMapping() {
@@ -96,8 +95,8 @@ public class ProcessServiceImple implements ProcessService {
     @Override
     public void executeManufacture(InputInfo inputInfo) throws Exception {
         int count = 0;
-        while (!(viewContactSwitch())) {
-            if (count == 5) {
+        while (true) {
+            if (count == 60) {
                 Map<String, Integer> product = new HashMap<String, Integer>();
                 product.put("productWeight", 0);
                 product.put("code", 101);
@@ -106,11 +105,14 @@ public class ProcessServiceImple implements ProcessService {
                 return;
             }
 
-            if (ProcessServiceImple.getContactSwitchStatus()) {
+            if ((viewContactSwitch())) {
                 break;
+
             } else {
+
                 controlLED(true);
                 Thread.sleep(500);
+
                 controlLED(false);
                 Thread.sleep(500);
                 count++;
@@ -118,7 +120,8 @@ public class ProcessServiceImple implements ProcessService {
                 continue;
             }
         }
-        final Hx711 hx711 = new Hx711(gpioController.provisionDigitalInputPin(RaspiPin.GPIO_15), gpioController.provisionDigitalOutputPin(RaspiPin.GPIO_16), 5000, 1.0, GainFactor.GAIN_128);
+
+        Thread.sleep(2000);
         hx711.measureAndSetTare();
 
         controlPump(inputInfo);
@@ -149,7 +152,6 @@ public class ProcessServiceImple implements ProcessService {
 
     @Override
     public boolean viewContactSwitch() {
-        try {
             PIN_SWITCH.addListener(new GpioPinListenerDigital() {
                 @Override
                 public void handleGpioPinDigitalStateChangeEvent(GpioPinDigitalStateChangeEvent event) {
@@ -162,9 +164,7 @@ public class ProcessServiceImple implements ProcessService {
                     }
                 }
             });
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+
         return getContactSwitchStatus();
     }
 
@@ -202,17 +202,17 @@ public class ProcessServiceImple implements ProcessService {
                 motors[(Integer.valueOf(pumpNo) - 1)].step(-103);
                 Thread.sleep(1000);
             } else if ((Integer.valueOf(pumpNo) == 2)) {
-                motors[(Integer.valueOf(pumpNo) - 1)].step(-143);
+                motors[(Integer.valueOf(pumpNo) - 1)].step(-140);
 
                 motorSecond = (long) (((Double.valueOf(pumpInfo.get(i).get(pumpNo)) -7.6) / 16.40) * 1000);
                 Thread.sleep(motorSecond);
 
-                motors[(Integer.valueOf(pumpNo) - 1)].step(143);
+                motors[(Integer.valueOf(pumpNo) - 1)].step(140);
                 Thread.sleep(1000);
             } else if ((Integer.valueOf(pumpNo) == 3)) {
                 motors[(Integer.valueOf(pumpNo) - 1)].step(-155);
 
-                motorSecond = (long) (((Double.valueOf(pumpInfo.get(i).get(pumpNo)) -7.6) / 21.00) * 1000);
+                motorSecond = (long) (((Double.valueOf(pumpInfo.get(i).get(pumpNo)) -7.6) / 17.50) * 1000);
                 Thread.sleep(motorSecond);
 
                 motors[(Integer.valueOf(pumpNo) - 1)].step(155);
@@ -223,14 +223,10 @@ public class ProcessServiceImple implements ProcessService {
 
     @Override
     public void controlLED(boolean status) {
-        try {
-            if (status) {
-                PIN_LED.high();
-            } else {
-                PIN_LED.low();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (status) {
+            PIN_LED.high();
+        } else {
+            PIN_LED.low();
         }
     }
 

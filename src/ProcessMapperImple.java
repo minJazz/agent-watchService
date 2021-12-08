@@ -1,6 +1,7 @@
 import okhttp3.*;
 import org.codehaus.jackson.map.ObjectMapper;
 
+import java.io.File;
 import java.io.FileReader;
 import java.util.Map;
 import java.util.Properties;
@@ -12,7 +13,7 @@ public class ProcessMapperImple implements ProcessMapper {
 
         try {
             Properties properties = new Properties();
-            properties.load(new FileReader("src/resources/config.properties"));
+            properties.load(new FileReader("config.properties"));
             ip = properties.getProperty("ip");
         } catch (Exception e) {
             e.printStackTrace();
@@ -48,8 +49,13 @@ public class ProcessMapperImple implements ProcessMapper {
                 responseBody = response.body();
 
                 if (responseBody != null) {
-                    if (!(responseBody.string().contains("200")) && receiveCount < 3) {
-                        response = okHttpClient.newCall(request).execute();
+                    while (receiveCount == 3) {
+                        if (!(responseBody.string().contains("200")) && receiveCount < 3) {
+                            response = okHttpClient.newCall(request).execute();
+                            receiveCount++;
+
+                            Thread.sleep(10000);
+                        }
                     }
                     responseBody.close();
                 }

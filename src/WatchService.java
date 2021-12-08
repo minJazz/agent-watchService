@@ -1,15 +1,21 @@
+import com.pi4j.io.gpio.GpioPin;
+import com.pi4j.io.gpio.RaspiPin;
+
 import java.nio.file.*;
 import java.util.*;
 
 public class WatchService {
     private ProcessServiceImple processServiceImple;
+    private ProcessMapperImple processMapperImple;
 
-    public WatchService(ProcessServiceImple processServiceImple) {
+    public WatchService(ProcessServiceImple processServiceImple, ProcessMapperImple processMapperImple) {
         this.processServiceImple = processServiceImple;
+        this.processMapperImple = processMapperImple;
     }
 
     public static void main(String[] args) {
-        WatchService watchService = new WatchService(new ProcessServiceImple(new ProcessMapperImple()));
+        ProcessMapperImple processMapperImple = new ProcessMapperImple();
+        WatchService watchService = new WatchService(new ProcessServiceImple(processMapperImple), processMapperImple);
         watchService.watchService();
     }
 
@@ -39,16 +45,6 @@ public class WatchService {
                 if (!watchKey.reset()) {
                     break;
                 }
-            }
-        } catch (NumberFormatException ne) {
-            try {
-                Map<String, Integer> response = new HashMap<String, Integer>();
-                response.put("productWeight", 0);
-                response.put("code", 102);
-
-                processServiceImple.getProcessMapperImple().sendProductInfo(response);
-            } catch (Exception e) {
-                e.printStackTrace();
             }
         } catch (Exception e) {
             e.printStackTrace();
