@@ -1,7 +1,6 @@
 import okhttp3.*;
 import org.codehaus.jackson.map.ObjectMapper;
 
-import java.io.File;
 import java.io.FileReader;
 import java.util.Map;
 import java.util.Properties;
@@ -57,6 +56,7 @@ public class ProcessMapperImple implements ProcessMapper {
                             Thread.sleep(10000);
                         }
                     }
+
                     responseBody.close();
                 }
             }

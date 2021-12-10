@@ -2,7 +2,8 @@ import com.pi4j.component.motor.impl.GpioStepperMotorComponent;
 import com.pi4j.io.gpio.*;
 import com.pi4j.io.gpio.event.GpioPinDigitalStateChangeEvent;
 import com.pi4j.io.gpio.event.GpioPinListenerDigital;
-import com.pi4j.io.gpio.impl.GpioControllerImpl;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -11,6 +12,7 @@ import java.io.InputStreamReader;
 import java.util.*;
 
 public class ProcessServiceImple implements ProcessService {
+    private final static Logger logger = LogManager.getLogger(ProcessServiceImple.class);
     private final static GpioController gpioController = GpioFactory.getInstance();
 
     private final static GpioPinDigitalOutput[][] PINS_MOTOR = {
@@ -69,7 +71,7 @@ public class ProcessServiceImple implements ProcessService {
         List<Map<String, String>> pumpInfos = null;
 
         try {
-            File file = new File("/home/pi/led/led.txt");
+            File file = new File("/home/pi/process/process-info.txt");
 
             bufferedReader = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
 
@@ -94,6 +96,8 @@ public class ProcessServiceImple implements ProcessService {
 
     @Override
     public void executeManufacture(InputInfo inputInfo) throws Exception {
+        logger.info("  《 Manufacture Start 》 ");
+        logger.info("------------------------------");
         int count = 0;
         while (true) {
             if (count == 60) {
@@ -121,17 +125,33 @@ public class ProcessServiceImple implements ProcessService {
             }
         }
 
-        Thread.sleep(2000);
+        Thread.sleep(5000);
         hx711.measureAndSetTare();
+
+        logger.info("  《 Pump Control Start 》 ");
+        logger.info("------------------------------");
 
         controlPump(inputInfo);
         Thread.sleep(5000);
 
+
+        logger.info("  《 Measure Product Weight 》 ");
+        logger.info("------------------------------");
+
         int productWeight = measureProductWeight(hx711);
         Thread.sleep(1000);
 
+        logger.info("  《 Measure Termination 》 ");
+        logger.info("   Actual Product Weight : " + productWeight + "g");
+        logger.info("------------------------------");
+
+
         controlLED(true);
         Thread.sleep(500);
+
+        logger.info("         《 LED ON 》 ");
+        logger.info("------------------------------");
+
 
         while (true) {
             if (!(viewContactSwitch())) {
@@ -145,9 +165,17 @@ public class ProcessServiceImple implements ProcessService {
         product.put("code", 200);
 
         processMapperImple.sendProductInfo(product);
+        logger.info("  《 Send Production Infomation 》 ");
+        logger.info("   Actual Product Weight : " + productWeight);
+        logger.info("------------------------------");
         Thread.sleep(500);
 
         controlLED(false);
+        logger.info("        《 LED OFF 》 ");
+        logger.info("------------------------------");
+
+        logger.info("  《 Manufacture Finish 》 ");
+        logger.info("------------------------------");
     }
 
     @Override
@@ -195,27 +223,27 @@ public class ProcessServiceImple implements ProcessService {
             if ((Integer.valueOf(pumpNo) == 1)) {
                 motors[(Integer.valueOf(pumpNo) - 1)].step(103);
 
-                motorSecond = (long) (((Double.valueOf(pumpInfo.get(i).get(pumpNo)) -7.6) / 20.80) * 1000);
+                motorSecond = (long) (((Double.valueOf(pumpInfo.get(i).get(pumpNo)) -7.6) / 16.20) * 1000);
                 Thread.sleep(motorSecond);
 
 
                 motors[(Integer.valueOf(pumpNo) - 1)].step(-103);
                 Thread.sleep(1000);
             } else if ((Integer.valueOf(pumpNo) == 2)) {
-                motors[(Integer.valueOf(pumpNo) - 1)].step(-140);
+                motors[(Integer.valueOf(pumpNo) - 1)].step(-130);
 
-                motorSecond = (long) (((Double.valueOf(pumpInfo.get(i).get(pumpNo)) -7.6) / 16.40) * 1000);
+                motorSecond = (long) (((Double.valueOf(pumpInfo.get(i).get(pumpNo)) -7.6) / 27.00) * 1000);
                 Thread.sleep(motorSecond);
 
-                motors[(Integer.valueOf(pumpNo) - 1)].step(140);
+                motors[(Integer.valueOf(pumpNo) - 1)].step(130);
                 Thread.sleep(1000);
             } else if ((Integer.valueOf(pumpNo) == 3)) {
-                motors[(Integer.valueOf(pumpNo) - 1)].step(-155);
+                motors[(Integer.valueOf(pumpNo) - 1)].step(-127);
 
-                motorSecond = (long) (((Double.valueOf(pumpInfo.get(i).get(pumpNo)) -7.6) / 17.50) * 1000);
+                motorSecond = (long) (((Double.valueOf(pumpInfo.get(i).get(pumpNo)) -7.6) / 19.00) * 1000);
                 Thread.sleep(motorSecond);
 
-                motors[(Integer.valueOf(pumpNo) - 1)].step(155);
+                motors[(Integer.valueOf(pumpNo) - 1)].step(127);
                 Thread.sleep(1000);
             }
         }
@@ -232,8 +260,13 @@ public class ProcessServiceImple implements ProcessService {
 
     @Override
     public int measureProductWeight(Hx711 hx711) throws Exception {
-        long value = hx711.measure();
+        long value = 0;
+        for (int i = 0; i < 10; i++) {
+            value += hx711.measure();
+            Thread.sleep(250);
+        }
 
-        return (int) (value * -1);
+
+        return (int) ((value / 10) * -1 );
     }
 }

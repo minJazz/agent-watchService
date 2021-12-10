@@ -8,16 +8,6 @@ public class Hx711 {
     private double ratedOutput;
     private long tareOffset;
 
-    /**
-     * hx711 센서의 인스턴스를 생성합니다. 생성자에서 저울의 무게를 잽니다.
-     *
-     * @param pinDT             DT 와이어용 GPIO 핀.
-     * @param pinSCK            와이어용 SCK GPIO 핀.
-     * @param loadCellMaxWeight 로드셀의 최대 무게(g).
-     * @param ratedOutput       로드셀의 정격 출력(mv/V).
-     *                          예 값 '1.0' 또는 '2.0'이 일반적입니다.
-     * @param gainFactor        128비트는 공통입니다.
-     */
     public Hx711(GpioPinDigitalInput pinDT, GpioPinDigitalOutput pinSCK, int loadCellMaxWeight,
                  double ratedOutput, GainFactor gainFactor) {
         this.pinSCK = pinSCK;
@@ -28,27 +18,14 @@ public class Hx711 {
         pinSCK.setState(PinState.LOW);
     }
 
-    /**
-     * 저울의 현재 부하를 측정합니다. (용기 오프셋은 차감됩니다)
-     * 경고! 전에 용기 값을 설정했는지 확인하십시오. 그렇지 않으면 결과가 나옵니다.
-     * 불량이 됩니다.
-     *
-     * @소수점 없이 반올림된 그램(g) 단위의 하중을 반환합니다.
-     */
     public long measure() {
         double measuredKilogram = ((readValue() - tareOffset) * 0.5 * loadCellMaxWeight) / ((ratedOutput / 1000) * 128 * 8388608);
-        double measuredGrams = measuredKilogram * 1.0584;
+        double measuredGrams = measuredKilogram * 1.0644;
         long roundedGrams = Math.round(measuredGrams);
 
         return roundedGrams;
     }
 
-
-    /**
-     * 로드셀 센서에서 값을 가져옵니다.
-     *
-     * @return 로드셀 센서가 반환한 원시 디지털 값.
-     */
     public long readValue() {
         pinSCK.setState(PinState.LOW);
         while (!isReadyForMeasurement()) {
@@ -72,13 +49,6 @@ public class Hx711 {
         return count;
     }
 
-    /**
-     * 로드셀의 현재값을 측정하여 용기값으로 설정합니다.
-     * 경고: 이 방법을 실행하면 이에 대한 빈 값이 설정됩니다.
-     * 로드 셀!
-     *
-     * @return
-     */
     public long measureAndSetTare() {
         long tareValue = readValue();
         this.tareOffset = tareValue;
@@ -86,11 +56,6 @@ public class Hx711 {
         return tareValue;
     }
 
-    /**
-     * 저울의 용기 값을 주어진 값으로 설정합니다.
-     *
-     * @param tareValue 값은 저울이 비어 있을 때 얻을 수 있습니다.
-     */
     public void setTareValue(long tareValue) {
         this.tareOffset = tareValue;
     }
